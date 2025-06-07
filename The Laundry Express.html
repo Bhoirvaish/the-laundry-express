@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Laundry Management System</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f6f8fa;
+    margin: 0;
+    padding: 0;
+    color: #333;
+  }
+  header {
+    background: #4a90e2;
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.8rem;
+    letter-spacing: 1.5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  main {
+    max-width: 960px;
+    margin: 2rem auto 3rem auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+  }
+  form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem 2rem;
+    margin-bottom: 2rem;
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+  }
+  input[type="text"],
+  input[type="number"],
+  select {
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    padding: 0.5rem 0.8rem;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  select:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
+  button {
+    background: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    justify-self: start;
+    grid-column: 1 / -1;
+    width: 140px;
+  }
+  button:hover {
+    background: #3578d4;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  thead {
+    background: #4a90e2;
+    color: white;
+  }
+  th, td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid #e1e1e1;
+    text-align: left;
+    vertical-align: middle;
+  }
+  tbody tr:nth-child(even){
+    background: #f9faff;
+  }
+  td.actions {
+    text-align: center;
+  }
+  button.action-btn {
+    background: transparent;
+    border: none;
+    color: #4a90e2;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0 0.2rem;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+  }
+  button.action-btn:hover {
+    color: #2359a9;
+  }
+  select.status-select,
+  select.payment-status-select,
+  select.payment-method-select {
+    border: none;
+    background: transparent;
+    font-weight: 600;
+    cursor: pointer;
+    color: #333;
+  }
+  @media (max-width: 600px) {
+    form {
+      grid-template-columns: 1fr;
+    }
+    button {
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  Laundry Management System
+</header>
+<main>
+  <form id="laundryForm">
+    <label>
+      Customer Name
+      <input type="text" id="customerName" required placeholder="Enter customer name" />
+    </label>
+    <label>
+      Item Description
+      <input type="text" id="itemDescription" required placeholder="E.g. Shirts, Jeans" />
+    </label>
+    <label>
+      Quantity
+      <input type="number" id="quantity" min="1" value="1" required />
+    </label>
+    <label>
+      Status
+      <select id="status" required>
+        <option value="Received">Received</option>
+        <option value="Washing">Washing</option>
+        <option value="Ironing">Ironing</option>
+        <option value="Ready">Ready</option>
+        <option value="Delivered">Delivered</option>
+      </select>
+    </label>
+    <label>
+      Payment Status
+      <select id="paymentStatus" required>
+        <option value="Unpaid">Unpaid</option>
+        <option value="Pending">Pending</option>
+        <option value="Paid">Paid</option>
+      </select>
+    </label>
+    <label>
+      Payment Method
+      <select id="paymentMethod" required>
+        <option value="Cash">Cash</option>
+        <option value="Card">Card</option>
+        <option value="Online">Online</option>
+      </select>
+    </label>
+    <label>
+      Payment Amount ($)
+      <input type="number" id="paymentAmount" min="0" step="0.01" value="0.00" required />
+    </label>
+    <button type="submit">Add Laundry</button>
+  </form>
+
+  <table aria-label="Laundry items list">
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th>Item</th>
+        <th>Quantity</th>
+        <th>Status</th>
+        <th>Payment Status</th>
+        <th>Payment Method</th>
+        <th>Amount ($)</th>
+        <th class="actions">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="laundryList">
+      <!-- Laundry items will be populated here -->
+    </tbody>
+  </table>
+</main>
+<script>
+  (function() {
+    const form = document.getElementById('laundryForm');
+    const laundryListEl = document.getElementById('laundryList');
+    let laundryItems = [];
+
+    // Load from localStorage
+    function loadLaundry() {
+      const stored = localStorage.getItem('laundryItems');
+      if (stored) {
+        try {
+          laundryItems = JSON.parse(stored) || [];
+        } catch {
+          laundryItems = [];
+        }
+      }
+    }
+
+    // Save to localStorage
+    function saveLaundry() {
+      localStorage.setItem('laundryItems', JSON.stringify(laundryItems));
+    }
+
+    // Render laundry items in the table
+    function renderLaundry() {
+      laundryListEl.innerHTML = '';
+      if (laundryItems.length === 0) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 8;
+        emptyCell.style.textAlign = 'center';
+        emptyCell.style.fontStyle = 'italic';
+        emptyCell.textContent = 'No laundry items added yet.';
+        emptyRow.appendChild(emptyCell);
+        laundryListEl.appendChild(emptyRow);
+        return;
+      }
+
+      laundryItems.forEach((item, index) => {
+        const tr = document.createElement('tr');
+
+        const tdCustomer = document.createElement('td');
+        tdCustomer.textContent = item.customerName;
+        tr.appendChild(tdCustomer);
+
+        const tdItem = document.createElement('td');
+        tdItem.textContent = item.itemDescription;
+        tr.appendChild(tdItem);
+
+        const tdQty = document.createElement('td');
+        tdQty.textContent = item.quantity;
+        tr.appendChild(tdQty);
+
+        const tdStatus = document.createElement('td');
+        const selectStatus = document.createElement('select');
+        selectStatus.className = 'status-select';
+        ['Received', 'Washing', 'Ironing', 'Ready', 'Delivered'].forEach(status => {
+          const option = document.createElement('option');
+          option.value = status;
+          option.textContent = status;
+          if (item.status === status) option.selected = true;
+          selectStatus.appendChild(option);
+        });
+        selectStatus.addEventListener('change', () => {
+          laundryItems[index].status = selectStatus.value;
+          saveLaundry();
+          renderLaundry();
+        });
+        tdStatus.appendChild(selectStatus);
+        tr.appendChild(tdStatus);
+
+        const tdPaymentStatus = document.createElement('td');
+        const selectPaymentStatus = document.createElement('select');
+        selectPaymentStatus.className = 'payment-status-select';
+        ['Unpaid', 'Pending', 'Paid'].forEach(payStatus => {
+          const option = document.createElement('option');
+          option.value = payStatus;
+          option.textContent = payStatus;
+          if (item.paymentStatus === payStatus) option.selected = true;
+          selectPaymentStatus.appendChild(option);
+        });
+        selectPaymentStatus.addEventListener('change', () => {
+          laundryItems[index].paymentStatus = selectPaymentStatus.value;
+          saveLaundry();
+          renderLaundry();
+        });
+        tdPaymentStatus.appendChild(selectPaymentStatus);
+        tr.appendChild(tdPaymentStatus);
+
+        const tdPaymentMethod = document.createElement('td');
+        const selectPaymentMethod = document.createElement('select');
+        selectPaymentMethod.className = 'payment-method-select';
+        ['Cash', 'Card', 'Online'].forEach(method => {
+          const option = document.createElement('option');
+          option.value = method;
+          option.textContent = method;
+          if (item.paymentMethod === method) option.selected = true;
+          selectPaymentMethod.appendChild(option);
+        });
+        selectPaymentMethod.addEventListener('change', () => {
+          laundryItems[index].paymentMethod = selectPaymentMethod.value;
+          saveLaundry();
+          renderLaundry();
+        });
+        tdPaymentMethod.appendChild(selectPaymentMethod);
+        tr.appendChild(tdPaymentMethod);
+
+        const tdAmount = document.createElement('td');
+        tdAmount.textContent = Number(item.paymentAmount).toFixed(2);
+        tr.appendChild(tdAmount);
+
+        const tdActions = document.createElement('td');
+        tdActions.className = 'actions';
+
+        const btnEdit = document.createElement('button');
+        btnEdit.textContent = 'Edit';
+        btnEdit.className = 'action-btn';
+        btnEdit.title = 'Edit this laundry item';
+        btnEdit.addEventListener('click', () => {
+          fillFormForEdit(index);
+        });
+
+        const btnDelete = document.createElement('button');
+        btnDelete.textContent = 'Delete';
+        btnDelete.className = 'action-btn';
+        btnDelete.title = 'Delete this laundry item';
+        btnDelete.style.color = '#d9534f';
+        btnDelete.addEventListener('click', () => {
+          if (confirm('Are you sure you want to delete this laundry item?')) {
+            laundryItems.splice(index, 1);
+            saveLaundry();
+            renderLaundry();
+          }
+        });
+
+        tdActions.appendChild(btnEdit);
+        tdActions.appendChild(btnDelete);
+        tr.appendChild(tdActions);
+
+        laundryListEl.appendChild(tr);
+      });
+    }
+
+    let editIndex = -1;
+    function fillFormForEdit(index) {
+      const item = laundryItems[index];
+      document.getElementById('customerName').value = item.customerName;
+      document.getElementById('itemDescription').value = item.itemDescription;
+      document.getElementById('quantity').value = item.quantity;
+      document.getElementById('status').value = item.status;
+      document.getElementById('paymentStatus').value = item.paymentStatus || 'Unpaid';
+      document.getElementById('paymentMethod').value = item.paymentMethod || 'Cash';
+      document.getElementById('paymentAmount').value = Number(item.paymentAmount).toFixed(2);
+      editIndex = index;
+      form.querySelector('button[type="submit"]').textContent = 'Update Laundry';
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const customerName = document.getElementById('customerName').value.trim();
+      const itemDescription = document.getElementById('itemDescription').value.trim();
+      const quantity = parseInt(document.getElementById('quantity').value, 10);
+      const status = document.getElementById('status').value;
+      const paymentStatus = document.getElementById('paymentStatus').value;
+      const paymentMethod = document.getElementById('paymentMethod').value;
+      const paymentAmountRaw = document.getElementById('paymentAmount').value;
+      const paymentAmount = parseFloat(paymentAmountRaw);
+
+      if (!customerName || !itemDescription || quantity <= 0) {
+        alert('Please fill all fields correctly.');
+        return;
+      }
+      if (isNaN(paymentAmount) || paymentAmount < 0) {
+        alert('Please enter a valid payment amount.');
+        return;
+      }
+
+      if (editIndex >= 0) {
+        laundryItems[editIndex] = { customerName, itemDescription, quantity, status, paymentStatus, paymentMethod, paymentAmount };
+        editIndex = -1;
+        form.querySelector('button[type="submit"]').textContent = 'Add Laundry';
+      } else {
+        laundryItems.push({ customerName, itemDescription, quantity, status, paymentStatus, paymentMethod, paymentAmount });
+      }
+
+      saveLaundry();
+      renderLaundry();
+      form.reset();
+      document.getElementById('quantity').value = "1";
+      document.getElementById('paymentAmount').value = "0.00";
+    });
+
+    loadLaundry();
+    renderLaundry();
+  })();
+</script>
+</body>
+</html>
+
